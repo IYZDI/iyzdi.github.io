@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Fiet Order System</title>
+
+<!-- PDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root {
+    --main-color:#27ae60;
+    --bg-custom:#faf6eb;
+    --border-color:#d1ccbc;
+    --dark-text:#3e3a30;
+    --danger-color:#e74c3c;
+}
+
+body {
+    font-family:'Segoe UI',sans-serif;
+    background:var(--bg-custom);
+    margin:0;
+    color:var(--dark-text);
+}
+
+body.ar {direction:rtl;}
+body.en {direction:ltr;}
+
+.hidden{display:none!important}
+
+/* ===== Top Bar ===== */
+.top-bar{
+    background:white;
+    padding:10px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-bottom:1px solid var(--border-color);
+}
+
+.brand-logo-top{height:70px}
+
+/* ===== Unified Buttons ===== */
+.btn-main,.btn-secondary,.nav-btn,.lang-btn,.delete-btn{
+    min-height:44px;
+    padding:0 18px;
+    border-radius:12px;
+    font-weight:bold;
+    font-size:14px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    border:none;
+}
+
+.btn-main{background:var(--main-color);color:white}
+.btn-secondary,.nav-btn{background:var(--dark-text);color:white}
+.lang-btn{background:#555;color:white}
+.delete-btn{background:var(--danger-color);color:white;min-height:36px;font-size:13px}
+
+.nav-btns{display:flex;gap:10px}
+
+/* ===== Layout ===== */
+.page-content{
+    min-height:85vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+/* ===== Panels ===== */
+.input-panel,.archive-panel{
+    background:white;
+    padding:25px;
+    border-radius:20px;
+    border:1px solid var(--border-color);
+    box-shadow:0 10px 30px rgba(0,0,0,.05);
+}
+
+.input-panel{width:100%;max-width:450px}
+.archive-panel{width:95%;max-width:1000px}
+
+/* ===== Inputs ===== */
+.input-group{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+input,select{
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--border-color);
+}
+
+/* ===== Invoice (OLD DESIGN) ===== */
+.invoice-page{
+    flex-direction:column;
+    gap:20px;
+}
+
+#a6-label{
+    width:105mm;
+    height:148mm;
+    background:var(--bg-custom);
+    border:2px solid var(--dark-text);
+    padding:8mm;
+    display:flex;
+    flex-direction:column;
+}
+
+.header{
+    text-align:center;
+    border-bottom:4px double var(--dark-text);
+    margin-bottom:12px;
+    padding-bottom:10px;
+}
+
+.label-logo{
+    width:60mm;
+    height:25mm;
+    object-fit:contain;
+}
+
+.cust-box{
+    background:var(--dark-text);
+    color:var(--bg-custom);
+    text-align:center;
+    padding:8px;
+    margin:10px 0;
+    font-weight:bold;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    border-bottom:1px dashed var(--border-color);
+    padding:8px 0;
+    font-size:14px;
+}
+
+.macros-box{
+    margin-top:auto;
+    background:white;
+    border:1px solid var(--dark-text);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    padding:10px;
+    gap:8px;
+}
+
+.m-item{
+    text-align:center;
+    border:1px solid var(--border-color);
+    padding:5px;
+}
+
+.m-val{
+    font-size:20px;
+    font-weight:bold;
+    color:var(--main-color);
+    display:block;
+}
+
+/* ===== Table ===== */
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+    font-size:13px;
+}
+
+th,td{
+    border:1px solid var(--border-color);
+    padding:8px;
+    text-align:center;
+}
+
+/* ===== Print ===== */
+@media print{
+    .top-bar,.input-panel,.archive-panel,.action-buttons{display:none!important}
+    body{background:white}
+}
+</style>
+</head>
+
+<body class="ar">
+
+<!-- ===== Top Bar ===== -->
+<div class="top-bar">
+<img src="https://gcdnb.pbrd.co/images/saMjGGEaWqfj.png?o=1" class="brand-logo-top">
+<div class="nav-btns">
+<button class="nav-btn" onclick="showPage('order-page')">الطلبات</button>
+<button class="nav-btn" onclick="showPage('archive-page')">الأرشيف</button>
+<button class="lang-btn" onclick="toggleLanguage()">English / العربية</button>
+</div>
+</div>
+
+<div class="page-content">
+
+<!-- ===== Order Page ===== -->
+<div id="order-page" class="input-panel">
+<h2>🍽️ إنشاء طلب جديد</h2>
+
+<div class="input-group">
+<label>اسم العميل</label>
+<input id="cName">
+
+<label>نوع البروتين</label>
+<select id="pSel" onchange="updateData()"></select>
+<input type="number" id="pW" placeholder="g" oninput="updateData()">
+
+<label>نوع الكارب</label>
+<select id="cSel" onchange="updateData()"></select>
+<input type="number" id="cW" placeholder="g" oninput="updateData()">
+</div>
+
+<button class="btn-main" id="ui-btn-calc"
+        onclick="saveAndShowInvoice()"
+        style="display:block; margin:25px auto 0 auto; width:85%;">
+    عرض الفاتورة
+</button>
+</div>
+
+<!-- ===== Invoice ===== -->
+<div id="invoice-page" class="invoice-page hidden">
+<div id="a6-label">
+
+<div class="header">
+<img src="https://gcdnb.pbrd.co/images/saMjGGEaWqfj.png?o=1" class="label-logo">
+<div>QUALITY & HEALTHY MEALS</div>
+</div>
+
+<div class="cust-box" id="dCust">Guest</div>
+
+<div class="row"><span>Protein</span><span id="dPName">-</span></div>
+<div class="row"><span>Protein Weight</span><span id="dPW">0 g</span></div>
+<div class="row"><span>Carb</span><span id="dCName">-</span></div>
+<div class="row"><span>Carb Weight</span><span id="dCW">0 g</span></div>
+
+<div class="macros-box">
+<div class="m-item"><span class="m-val" id="rCal">0</span>Calories</div>
+<div class="m-item"><span class="m-val" id="rPro">0</span>Protein</div>
+<div class="m-item"><span class="m-val" id="rCarb">0</span>Carb</div>
+<div class="m-item"><span class="m-val" id="rFat">0</span>Fat</div>
+</div>
+
+<div style="text-align:center;font-size:10px;margin-top:10px">
+<span id="dateNow"></span> | <span id="timeNow"></span><br>
+Enjoy your meal!
+</div>
+</div>
+
+<div class="action-buttons">
+<button class="btn-secondary" onclick="showPage('order-page')">⬅ Back</button>
+<button class="btn-main" onclick="window.print()">🖨️ Print</button>
+</div>
+</div>
+
+<!-- ===== Archive ===== -->
+<div id="archive-page" class="archive-panel hidden">
+<h2>📦 أرشيف الطلبات</h2>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<button class="delete-btn" onclick="clearFullArchive()">مسح السجل</button>
+<button class="btn-main" onclick="exportArchiveExcel()">📊 Excel</button>
+<button class="btn-main" onclick="exportArchivePDF()">📄 PDF</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Date</th>
+<th>Customer</th>
+<th>Order</th>
+<th>P g</th>
+<th>C g</th>
+<th>Cal</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="archiveBody"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+let currentLang='ar';
+let archive=JSON.parse(localStorage.getItem('fietArchive'))||[];
+
+/* ===== Proteins ===== */
+const pDB = {
+    "كاتسو كاري": { en: "Katsu Curry", cal: 1.90, c: 0.032, f: 0.036, p: 0.312 },
+    "كباب دجاج": { en: "Chicken Kebab", cal: 1.70, c: 0.015, f: 0.030, p: 0.310 },
+    "دجاج تكا": { en: "Chicken Tikka", cal: 1.81, c: 0.014, f: 0.035, p: 0.325 },
+    "دجاج مشروم": { en: "Mushroom Chicken", cal: 1.88, c: 0.018, f: 0.039, p: 0.330 },
+    "بتر تشيكن": { en: "Butter Chicken", cal: 1.75, c: 0.013, f: 0.039, p: 0.320 },
+    "دجاج فاهيتا": { en: "Chicken Fajita", cal: 1.62, c: 0.020, f: 0.025, p: 0.330 },
+    "دجاج باربيكيو": { en: "BBQ Chicken", cal: 1.82, c: 0.034, f: 0.025, p: 0.340 },
+    "دجاج صيني": { en: "Chinese Chicken", cal: 1.83, c: 0.037, f: 0.041, p: 0.300 },
+    "دجاج ملوخيه": { en: "Molokhia Chicken", cal: 2.06, c: 0.068, f: 0.046, p: 0.340 }
+};
+
+/* ===== Carbs ===== */
+const cDB = {
+    "رز أبيض": { en: "White Rice", cal: 1.30, c: 0.28, f: 0.002, p: 0.025 },
+    "رز أصفر": { en: "Yellow Rice", cal: 1.30, c: 0.28, f: 0.002, p: 0.025 },
+    "رز مكسيكي": { en: "Mexican Rice", cal: 1.25, c: 0.27, f: 0.002, p: 0.024 },
+    "بطاطس ودجز": { en: "Potato Wedges", cal: 0.77, c: 0.17, f: 0.001, p: 0.020 },
+    "بطاطس مهروسة": { en: "Mashed Potato", cal: 1.00, c: 0.20, f: 0.010, p: 0.020 },
+    "باستا حمرا": { en: "Red Pasta", cal: 1.49, c: 0.31, f: 0.006, p: 0.055 },
+    "باستا بالكريمه": { en: "Creamy Pasta", cal: 1.76, c: 0.29, f: 0.022, p: 0.057 },
+    "تورتيلا": { en: "Tortilla", cal: 1.30, c: 0.21, f: 0.035, p: 0.030 }
+};
+
+function populateMenus(){
+pSel.innerHTML='<option value="">-- Select --</option>';
+cSel.innerHTML='<option value="">-- Select --</option>';
+for(let k in pDB)pSel.innerHTML+=`<option value="${k}">${currentLang==='ar'?k:pDB[k].en}</option>`;
+for(let k in cDB)cSel.innerHTML+=`<option value="${k}">${currentLang==='ar'?k:cDB[k].en}</option>`;
+}
+
+function updateData(){
+const pk=pSel.value,ck=cSel.value;
+const pw=+pW.value||0,cw=+cW.value||0;
+let cal=0,p=0,c=0,f=0;
+
+if(pDB[pk]){cal+=pDB[pk].cal*pw;p+=pDB[pk].p*pw;c+=pDB[pk].c*pw;f+=pDB[pk].f*pw;}
+if(cDB[ck]){cal+=cDB[ck].cal*cw;p+=cDB[ck].p*cw;c+=cDB[ck].c*cw;f+=cDB[ck].f*cw;}
+
+dCust.innerText=cName.value||"Guest";
+dPName.innerText=pk?pDB[pk].en:"-";
+dCName.innerText=ck?cDB[ck].en:"-";
+dPW.innerText=pw+" g";
+dCW.innerText=cw+" g";
+
+rCal.innerText=cal.toFixed(0);
+rPro.innerText=p.toFixed(1);
+rCarb.innerText=c.toFixed(1);
+rFat.innerText=f.toFixed(1);
+
+const now=new Date();
+dateNow.innerText=now.toLocaleDateString('en-GB');
+timeNow.innerText=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+function saveAndShowInvoice(){
+updateData();
+archive.push({
+id:archive.length+1,
+date:new Date().toLocaleDateString('en-GB'),
+customer:cName.value||"Guest",
+details:(pSel.value?pDB[pSel.value].en:"")+" & "+(cSel.value?cDB[cSel.value].en:""),
+pWeight:pW.value,
+cWeight:cW.value,
+cal:rCal.innerText
+});
+localStorage.setItem('fietArchive',JSON.stringify(archive));
+renderArchive();
+showPage('invoice-page');
+}
+
+function renderArchive(){
+archiveBody.innerHTML='';
+archive.forEach((o,i)=>{
+archiveBody.innerHTML+=`
+<tr>
+<td>${o.id}</td>
+<td>${o.date}</td>
+<td>${o.customer}</td>
+<td>${o.details}</td>
+<td>${o.pWeight}</td>
+<td>${o.cWeight}</td>
+<td>${o.cal}</td>
+<td><button class="delete-btn" onclick="deleteOrder(${i})">X</button></td>
+</tr>`;
+});
+}
+
+function exportArchiveExcel(){
+let csv="ID,Date,Customer,Order,Protein g,Carb g,Calories\n";
+archive.forEach(o=>{
+csv+=`${o.id},${o.date},${o.customer},${o.details},${o.pWeight},${o.cWeight},${o.cal}\n`;
+});
+const blob=new Blob([csv],{type:"text/csv"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="fiet_archive.csv";
+a.click();
+}
+
+function exportArchivePDF(){
+const pdf=new jsPDF();
+pdf.text("Fiet Orders Archive",14,15);
+pdf.autoTable({
+startY:20,
+head:[["ID","Date","Customer","Order","Protein g","Carb g","Calories"]],
+body:archive.map(o=>[o.id,o.date,o.customer,o.details,o.pWeight,o.cWeight,o.cal])
+});
+pdf.save("fiet_archive.pdf");
+}
+
+function deleteOrder(i){
+archive.splice(i,1);
+localStorage.setItem('fietArchive',JSON.stringify(archive));
+renderArchive();
+}
+
+function clearFullArchive(){
+if(confirm("Are you sure?")){
+archive=[];
+localStorage.removeItem('fietArchive');
+renderArchive();
+}
+}
+
+function showPage(id){
+document.querySelectorAll('.page-content > div').forEach(d=>d.classList.add('hidden'));
+document.getElementById(id).classList.remove('hidden');
+}
+
+function toggleLanguage(){
+currentLang=currentLang==='ar'?'en':'ar';
+document.body.className=currentLang;
+populateMenus();
+}
+
+window.onload=()=>{populateMenus();renderArchive();}
+</script>
+</body>
+</html>
